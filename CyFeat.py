@@ -12,7 +12,7 @@ import scipy.sparse as sps
 import anndata as ad
 import pandas as pd
 
-import BUSlib as bus
+import pyscBUS.BUSlib as bus
 from CyBCB import seq_exp
 from utilities.network import UMIClusterer
 
