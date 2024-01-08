@@ -1,0 +1,3 @@
+[submodule "pyscBUS"]
+	path = pyscBUS
+	url = https://github.com/cdelley/pyscBUS.git
