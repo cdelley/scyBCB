@@ -31,14 +31,16 @@ class features(seq_exp):
         self._is_sorted = False
     
     @classmethod
-    def assign_features(cls,
-                        file1:str,
-                        file2:str, 
-                        bc_correction_dic:list,
-                        feature_seq_dic:dict,
-                        seq_positions:dict,
-                        verbose=True, 
-                        down_sample=-1):
+    def assign_features(
+            cls,
+            file1:str,
+            file2:str, 
+            bc_correction_dic:list,
+            feature_seq_dic:dict,
+            seq_positions:dict,
+            verbose=True, 
+            down_sample=-1,
+        ):
                         
         """
         Class method to assign features from sequencing data.
