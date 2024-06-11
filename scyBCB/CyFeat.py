@@ -12,9 +12,9 @@ import scipy.sparse as sps
 import anndata as ad
 import pandas as pd
 
-import pyscBUS.BUSlib as bus
-from CyBCB import seq_exp
-from utilities.network import UMIClusterer
+import scyBCB.pyscBUS.BUSlib as bus
+from scyBCB.CyBCB import seq_exp
+from scyBCB.utilities.network import UMIClusterer
 
 def decode_umi(bin_code):
     return str(int(bin(bin_code)[2::2]) + int(bin(bin_code)[3::2])*2).replace('0','A').replace('1','G').replace('2','C').replace('3','T')[1:]
