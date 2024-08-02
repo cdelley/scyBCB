@@ -67,7 +67,7 @@ class sequences(seq_exp):
         
         
     @classmethod
-    def write_demux(
+    def write_good_reads(
         cls, 
         file1:str, 
         file2:str, 
@@ -137,24 +137,23 @@ class sequences(seq_exp):
             print('{}'.format(inst.output_stats))
         return inst 
                
-def call_cells(barcode_count_touples, plot=True, low_count_filter=100, batch_label=''):
+def call_cells(barcode_count_dict, plot=True, low_count_filter=100, batch_label=''):
     """call cells using the knee method, returns list of valid cell barcodes."""
     # count reads per barcode
-    bcs = []
-    reads = []
-    for i in barcode_count_touples:
-        bcs.append(i[1])
-        reads.append(i[0])
-       
-    reads, bcs = (list(t) for t in zip(*sorted(zip(reads, bcs), reverse=True)))
+    reads = np.array(list(barcode_count_dict.values()))
+    _thresh_idx = reads >= low_count_filter
 
+    reads = reads[_thresh_idx]
+    bcs = np.array(list(barcode_count_dict.keys()))[_thresh_idx]
+
+    _srt_idx = np.argsort(reads)[::-1]
+    reads = reads[_srt_idx]
+    bcs = bcs[_srt_idx]  
+    
     # second derivative method (inflection point) of the knee plot to identify cells
     # 1 - first derivative of cell rank plot
-    # exclude barcodes with low numbers of reads
-    rpc_thresh = [x for x in reads if x >= low_count_filter]
-    
-    x = np.log10(range(1, len(rpc_thresh)+1))
-    y = np.log10(np.array(rpc_thresh))
+    x = np.log10(range(1, len(reads)+1))
+    y = np.log10(reads)
 
     dy = np.zeros(y.shape, float)
     dy[0:-1] = np.diff(y) / np.diff(x)
@@ -172,6 +171,7 @@ def call_cells(barcode_count_touples, plot=True, low_count_filter=100, batch_lab
     height = 0.5
 
     peaks = find_peaks(yhat, height=height, prominence=prominence)
+    
     max_peak_i = np.argmax(peaks[1]['prominences'])
     max_peak_old = peaks[0][max_peak_i]
     max_peak = peaks[0][0]
@@ -180,6 +180,8 @@ def call_cells(barcode_count_touples, plot=True, low_count_filter=100, batch_lab
     n_cells = max_peak    #n_cells =  int(bin_centers[max_peak])
     cell_barcodes = np.sort(bcs[:n_cells])
 
+    barcode_count_touples = list(barcode_count_dict.items())
+
     if plot:
         cells=[]
 
@@ -187,24 +189,22 @@ def call_cells(barcode_count_touples, plot=True, low_count_filter=100, batch_lab
             cells.append(i)
         cells = np.array(cells)
         
-        fig, (ax1, ax2) = plt.subplots(2,1, figsize=(8,8), sharex=True)
-        l1 = ax1.plot(np.sort(cells[cells>5])[::-1])
-        ax1.plot([n_cells, n_cells],[300, np.max(cells)], 'k:')
-        ax1.plot([max_peak_old, max_peak_old],[300, np.max(cells)], 'r:')
-        ax1.set_yscale('symlog')
-        ax1.set_xscale('symlog')
+        fig, (ax1, ax2) = plt.subplots(2,1, figsize=(6,8), sharex=True)
+        l1 = ax1.plot(np.sort(list(barcode_count_dict.values()))[::-1])
+        ax1.plot([n_cells, n_cells],[300, np.max(reads)], 'k:')
+        ax1.plot([max_peak_old, max_peak_old],[300, np.max(reads)], 'r:')
         ax1.set_title('read per barcode distribution, {} cells'.format(n_cells))
         ax1.set_xlabel('barcode goup rank')
         ax1.set_ylabel('log read per barcode count')
-
+        ax1.set_yscale('log')
+        ax1.set_xscale('log')
+        
         ax2.plot(range(len(yhat)),yhat)
         ax2.set_title('Savitzky-Golay filter smoothed read counts')
         ax2.set_xlabel('barcode goup rank')
         ax2.set_ylabel('dy/dx')
         ax2.set_xscale('symlog')
-        CHECK_FOLDER = os.path.isdir('./qc_output')
-        if not CHECK_FOLDER:
-            os.makedirs('./qc_output')
+        os.makedirs('./qc_output', exist_ok=True) # ensure qc folder exists
         plt.savefig('./qc_output/Cell_calling_{}.png'.format(batch_label), dpi=600)
         plt.show()
     return cell_barcodes
