@@ -119,8 +119,18 @@ class sequences(seq_exp):
                         inst.bc_groups[read['BC']] = 1
                     
                     #fastq out
-                    r1 = '@'+read['ID']+'-R1-'+read['feature'][0][:-4]+'_'+str(read['BC'])+batch_label+'\n'+read['seq'][0]+'\n'+'+\n'+read['qual'][0]+'\n'
-                    r2 = '@'+read['ID']+'-R2-'+read['feature'][1][:-4]+'_'+str(read['BC'])+batch_label+'\n'+read['seq'][1]+'\n'+'+\n'+read['qual'][1]+'\n'
+                    r1 = (
+                        '@' + read['ID'] + '-R1-'+read['feature'][0][:-4] + '_' + str(read['BC']) + batch_label + '\n' +
+                        read['seq'][0] + '\n' +
+                        '+\n' +
+                        read['qual'][0] + '\n'
+                    )
+                    r2 = (
+                        '@' + read['ID'] + '-R2-' + read['feature'][1][:-4] + '_' + str(read['BC']) + batch_label + '\n' +
+                        read['seq'][1] + '\n' +
+                        '+\n' +
+                        read['qual'][1] + '\n'
+                    )
                         
                     fout1.write(r1)
                     fout2.write(r2)

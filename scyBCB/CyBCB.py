@@ -73,12 +73,12 @@ class seq_exp(object):
         barcodes (BC), UMIs, and feature sequences based on positions defined in `self.seq_positions`.
 
         Each element in 'self.seq_positions' is a tuple representing a sequence section. The first element
-        of the tuple indicates whether it's from read 1 or read 2 file (0 or 1), the second is the start basepair 
+        of the tuple indicates whether it's from read 1 or read 2 file (0 or 1), the second is the start basepair
         position, and the third is the end basepair position. Multiple tuples can be used for each sequence type.
 
-        For barcode ('bc') sequences, each sequence is matched against a barcode whitelist and encoded with a numeric ID.
-        For UMI sequences, the fragments are concatenated and translated into a binary sequence for storage; reads with ambiguous
-        bases are discarded. Feature sequences are extracted and returned as is.
+        For barcode ('bc') sequences, each sequence is matched against a barcode whitelist and encoded with a numeric
+        ID. For UMI sequences, the fragments are concatenated and translated into a binary sequence for storage; reads
+        with ambiguous bases are discarded. Feature sequences are extracted and returned as is.
 
         Args:
             handle1 (object): An open file handle to the first FASTQ file.
@@ -113,13 +113,19 @@ class seq_exp(object):
                 _qual = {0 : qual1, 1 : qual2}
                 _off = {0 : 0, 1 : 0}
                     
-                # identify barcode from white list
+                # identify barcode from whitelist
                 read = {'BC':0, 'UMI':'', 'feature':[], 'ID':ID, 'seq':[], 'qual':[]}
                 try:
                     for se, bc_di in zip(self.seq_positions['bc'], self.bc_correction_dic):
-                        _bc_of = bc_di[_seq[se[0]][se[1]+_off[se[0]] : se[2]+_off[se[0]]]]
-                        read['BC'] = read['BC']*100+_bc_of[0]
+                        _bc_of = bc_di[_seq[se[0]][se[1] + _off[se[0]] : se[2] + _off[se[0]]]]
+                        
+                        # for each barcode group we right shift the previous barcodes
+                        read['BC'] = read['BC']*100 + _bc_of[0]
                         _off[se[0]] += _bc_of[1]
+                        
+                    # to ensure all barcodes have the same number of digit we add a leading 1
+                    read['BC'] += 100**len(self.seq_positions['bc'])
+                    
                 except KeyError:
                     self.output_stats[2] += 1
                     continue
@@ -127,23 +133,26 @@ class seq_exp(object):
 
                 # get umi sequence if present                
                 for i in self.seq_positions['umi']:
-                    read['UMI'] += _seq[i[0]][i[1]+_off[i[0]]:i[2]+_off[i[0]]]
+                    read['UMI'] += _seq[i[0]][i[1] + _off[i[0]] : i[2] + _off[i[0]]]
                     
                 # translate umi to binary encoding. This will fail if 'N's are present
                 try:
-                    read['UMI'] = int('11'+read['UMI'].replace('A','00').replace('C','01').replace('G','10').replace('T','11'), 2)
+                    read['UMI'] = int(
+                        '11' + read['UMI'].replace('A','00').replace('C','01').replace('G','10').replace('T','11'),
+                        2
+                    )
                 except ValueError:
                     self.output_stats[5] += 1
                     continue
                 
                 # get feature sequences if present
                 for i in self.seq_positions['feature']:
-                    read['feature'].append(_seq[i[0]][i[1]+_off[i[0]]:i[2]+_off[i[0]]])
+                    read['feature'].append(_seq[i[0]][i[1] + _off[i[0]] : i[2] + _off[i[0]]])
                     
                 # get sequence fragments of interest
                 for i in self.seq_positions['seq']:
-                    read['seq'].append(_seq[i[0]][i[1]+_off[i[0]]:i[2]+_off[i[0]]])
-                    read['qual'].append(_qual[i[0]][i[1]+_off[i[0]]:i[2]+_off[i[0]]])
+                    read['seq'].append(_seq[i[0]][i[1] + _off[i[0]] : i[2] + _off[i[0]]])
+                    read['qual'].append(_qual[i[0]][i[1] + _off[i[0]] : i[2] + _off[i[0]]])
                 
                 yield read
             except StopIteration:
